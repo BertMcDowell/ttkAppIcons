@@ -3,12 +3,18 @@ import ast
 import configparser
 import base64
 import zlib
+import sys
 
+try:
+    from PIL import Image as PImage
+except Exception as exception:
+    print('Failed to import : '+str(exception))
+
+import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import scrolledtext
 from tkinter import ttk
-from tkinter import *
 
 window = None
 
@@ -52,9 +58,9 @@ def on_load():
                 print(exception)
 
     if os.path.isfile(appContentPath):
-        resultsBox.delete("1.0", END)
+        resultsBox.delete("1.0", tk.END)
         content = open(appContentPath, 'r')
-        resultsBox.insert(END, content.read())
+        resultsBox.insert(tk.END, content.read())
         content.close()
 
 def on_save():
@@ -117,6 +123,17 @@ def do_open_file():
     browserFilePath = filedialog.askopenfilename(initialdir=get_path(), title = "Select file",filetypes = (("png files","*.png"),("bmp files","*.bmp")))
     set_path(browserFilePath)
 
+def do_export_ico():
+    exportfile = filedialog.asksaveasfilename(initialdir=get_path(), title="Save file", filetypes=[("ico files","*.ico")], defaultextension='.ico')
+    if exportfile:
+        try:
+            img_file = browserPath.get()
+            icon_sizes = [(16,16), (32, 32), (48, 48), (64,64)]
+            img = PImage.open(img_file)
+            img.save(exportfile, sizes=icon_sizes)
+        except Exception as exception:
+            messagebox.showerror(title='Error', message='export failed : '+str(exception))
+
 def on_combobox_focusout(event):
     if isinstance(event.widget, ttk.Combobox):
         term = event.widget.get()
@@ -143,8 +160,8 @@ def on_convert_button():
         #data = base64.b64encode(data)
         data = base64.b85encode(data)
 
-        resultsBox.delete('1.0', END)
-        resultsBox.insert(END, str(data))
+        resultsBox.delete('1.0', tk.END)
+        resultsBox.insert(tk.END, str(data))
 
         if not os.path.exists(appDataPath):
             os.makedirs(appDataPath)
@@ -153,38 +170,44 @@ def on_convert_button():
         content.write(str(data))
         content.close()
 
-window = Tk()
+window = tk.Tk()
 
 style = ttk.Style(window)
 style.theme_use("clam")
 
 # Contents
-browserFrame = Frame(master=window)
-browserFrame.pack(fill=X, pady=2, padx=2)
+browserFrame = tk.Frame(master=window)
+browserFrame.pack(fill=tk.X, pady=2, padx=2)
 
-browserLabel = Label(master=browserFrame, text="Path", width=6, anchor=W)
+browserLabel = tk.Label(master=browserFrame, text="Path", width=6, anchor=tk.W)
 browserPath = ttk.Combobox(master=browserFrame, values=[])
 browserPath.bind("<FocusOut>", on_combobox_focusout)
-browserButton = Button(master=browserFrame, text="Convert", command=on_convert_button, width=30)
+browserButton = tk.Button(master=browserFrame, text="Convert", command=on_convert_button, width=30)
 
-browserLabel.pack(side=LEFT, padx=5, pady=5)
-browserButton.pack(side=RIGHT, padx=5, pady=5)
-browserPath.pack(fill=BOTH, expand=True, padx=5, pady=5)
+browserLabel.pack(side=tk.LEFT, padx=5, pady=5)
+browserButton.pack(side=tk.RIGHT, padx=5, pady=5)
+browserPath.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-resultsFrame = Frame(master=window)
-resultsFrame.pack(fill=BOTH, expand=True, pady=2, padx=2)
+resultsFrame = tk.Frame(master=window)
+resultsFrame.pack(fill=tk.BOTH, expand=True, pady=2, padx=2)
 
-resultsBox = scrolledtext.ScrolledText(master=resultsFrame, wrap=WORD, width=20, height=10)
-resultsBox.pack(fill=BOTH, expand=True, pady=2, padx=2)
+resultsBox = scrolledtext.ScrolledText(master=resultsFrame, wrap=tk.WORD, width=20, height=10)
+resultsBox.pack(fill=tk.BOTH, expand=True, pady=2, padx=2)
 
 # Top Menus
-menu = Menu(master=window)
-filemenu = Menu(master=menu)
+menu = tk.Menu(master=window, tearoff=0)
+filemenu = tk.Menu(master=menu, tearoff=0)
+exportmenu = tk.Menu(master=menu, tearoff=0)
 
 menu.add_cascade(label="File", menu=filemenu)
 
+# export
+exportmenu.add_command(label="ico", command=do_export_ico)
+
 # File Menu
 filemenu.add_command(label="Open File", command=do_open_file)
+filemenu.add_separator()
+filemenu.add_cascade(label="Export", menu=exportmenu)
 filemenu.add_separator()
 filemenu.add_command(label="Exit", command=on_close)
 
